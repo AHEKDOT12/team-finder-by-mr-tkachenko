@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Избранные проекты{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/project_list.css' %}">
+{% endblock %}
+
+{% with page_id="favorites" %}
+{% block content %}
+<div class="project-container">
+    <div class="project-header">
+        <h2 class="project-title">Избранные проекты</h2>
+    </div>
+
+    <p class="project-subtitle">Проекты, которые вы добавили в избранное</p>
+
+    <div class="projects-grid">
+        {% for favorite in favorites %}
+            {% with project=favorite.project %}
+                {% include 'includes/project-card.html' %}
+            {% endwith %}
+        {% empty %}
+            <div class="empty-project-card">
+                <h3>Пока нет избранных проектов</h3>
+                <p>Добавляйте интересные проекты в избранное, чтобы быстро находить их позже.</p>
+                <a href="/projects/list/" class="black-button">Перейти к проектам</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+{% endblock %}
+{% endwith %}
