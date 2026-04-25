@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import JsonResponse
@@ -8,8 +10,17 @@ from .forms import ProjectForm
 from .models import Favorite, Project
 
 
+PROJECTS_PER_PAGE = 12
+
+
 def home_redirect(request):
     return redirect("projects:project_list")
+
+
+def paginate_queryset(request, queryset, per_page=PROJECTS_PER_PAGE):
+    paginator = Paginator(queryset, per_page)
+    page_number = request.GET.get("page")
+    return paginator.get_page(page_number)
 
 
 def get_favorite_project_ids(user):
@@ -31,9 +42,7 @@ def project_list(request):
         .order_by("-created_at", "-id")
     )
 
-    paginator = Paginator(projects, 12)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginate_queryset(request, projects)
 
     context = {
         "projects": page_obj,
@@ -117,13 +126,13 @@ def complete_project(request, project_id):
     if project.owner != request.user and not request.user.is_staff:
         return JsonResponse(
             {"status": "error", "message": "Недостаточно прав."},
-            status=403,
+            status=HTTPStatus.FORBIDDEN,
         )
 
     if project.status != Project.STATUS_OPEN:
         return JsonResponse(
             {"status": "error", "message": "Проект уже закрыт."},
-            status=400,
+            status=HTTPStatus.BAD_REQUEST,
         )
 
     project.status = Project.STATUS_CLOSED
@@ -144,8 +153,11 @@ def toggle_participate(request, project_id):
 
     if project.owner == request.user:
         return JsonResponse(
-            {"status": "error", "message": "Автор уже является участником проекта."},
-            status=400,
+            {
+                "status": "error",
+                "message": "Автор уже является участником проекта.",
+            },
+            status=HTTPStatus.BAD_REQUEST,
         )
 
     if project.participants.filter(pk=request.user.pk).exists():
@@ -154,8 +166,11 @@ def toggle_participate(request, project_id):
     else:
         if project.status == Project.STATUS_CLOSED:
             return JsonResponse(
-                {"status": "error", "message": "Нельзя присоединиться к закрытому проекту."},
-                status=400,
+                {
+                    "status": "error",
+                    "message": "Нельзя присоединиться к закрытому проекту.",
+                },
+                status=HTTPStatus.BAD_REQUEST,
             )
 
         project.participants.add(request.user)
@@ -207,9 +222,7 @@ def favorite_projects(request):
         .order_by("-created_at", "-id")
     )
 
-    paginator = Paginator(favorites, 12)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginate_queryset(request, favorites)
 
     context = {
         "favorites": page_obj,

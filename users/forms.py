@@ -1,9 +1,9 @@
+from urllib.parse import urlparse
+
 from django import forms
 from django.contrib.auth import authenticate
-from urllib.parse import urlparse
-from .models import User
-from django.contrib.auth.forms import PasswordChangeForm
 
+from .models import User
 
 class RegistrationForm(forms.ModelForm):
     password = forms.CharField(
