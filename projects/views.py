@@ -28,7 +28,7 @@ def get_favorite_project_ids(user):
         return set()
 
     return set(
-        Favorite.objects.filter(user=user).values_list(
+        user.favorites.values_list(
             "project_id",
             flat=True,
         )
@@ -54,7 +54,10 @@ def project_list(request):
 
 def project_detail(request, project_id):
     project = get_object_or_404(
-        Project.objects.select_related("owner").prefetch_related("participants"),
+        Project.objects.select_related("owner").prefetch_related(
+            "participants",
+            "favorites",
+        ),
         pk=project_id,
     )
 
@@ -65,7 +68,7 @@ def project_detail(request, project_id):
     )
     is_favorite = (
         request.user.is_authenticated
-        and Favorite.objects.filter(user=request.user, project=project).exists()
+        and project.favorites.filter(user=request.user).exists()
     )
 
     context = {
@@ -190,8 +193,7 @@ def toggle_participate(request, project_id):
 def toggle_favorite(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
 
-    favorite, created = Favorite.objects.get_or_create(
-        user=request.user,
+    favorite, created = request.user.favorites.get_or_create(
         project=project,
     )
 
@@ -213,12 +215,11 @@ def toggle_favorite(request, project_id):
 @login_required
 def favorite_projects(request):
     favorites = (
-        Favorite.objects.select_related(
+        request.user.favorites.select_related(
             "project",
             "project__owner",
         )
         .prefetch_related("project__participants")
-        .filter(user=request.user)
         .order_by("-created_at", "-id")
     )
 
